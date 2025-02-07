@@ -1,81 +1,83 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const SaleForm = ({ onSaleCompleted }) => {
-  const [products, setProducts] = useState([]);
+const SaleForm = ({ productos, onSaleCompleted }) => {
+  // const [products, setProducts] = useState([]);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [total, setTotal] = useState(0);
 
-  // Obtener la lista de productos
-  useEffect(() => {
-    axios.get('http://localhost:5000/api/products')
-      .then(response => setProducts(response.data))
-      .catch(error => console.error(error));
-  }, []);
+  // useEffect(() => {
+  //   const fetchProducts = async () => {
+  //     try {
+  //       const { data } = await axios.get('http://localhost:5000/api/products');
+  //       setProducts(data);
+  //     } catch (error) {
+  //       console.error('Error fetching products:', error);
+  //     }
+  //   };
+  //   fetchProducts();
+  // }, []);
 
-  // Manejar la selección de productos y la edición del precio
-  const handleProductChange = (productId, quantity, price) => {
-    const product = products.find(p => p._id === productId);
+  const handleProductChange = (productId, quantity) => {
+    const product = productos.find(p => p._id === productId);
     if (!product) return;
 
     const updatedSelection = selectedProducts.filter(item => item.product !== productId);
     if (quantity > 0) {
-      updatedSelection.push({ product: productId, quantity, price });
+      updatedSelection.push({ product: productId, quantity });
     }
 
     setSelectedProducts(updatedSelection);
+    calculateTotal(updatedSelection);
+  };
 
-    // Calcular el total
-    const newTotal = updatedSelection.reduce((sum, item) => {
-      return sum + (item.price * item.quantity);
+  const calculateTotal = (selection) => {
+    const newTotal = selection.reduce((sum, item) => {
+      const product = productos.find(p => p._id === item.product);
+      return sum + (product.price * item.quantity);
     }, 0);
     setTotal(newTotal);
   };
 
-  // Registrar la venta
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/api/sales', { products: selectedProducts });
-      onSaleCompleted(response.data);
+      const { data } = await axios.post('http://localhost:5000/api/sales', { products: selectedProducts });
+      onSaleCompleted(data);
       setSelectedProducts([]);
       setTotal(0);
       alert('Venta registrada exitosamente');
     } catch (error) {
-      console.error(error);
+      console.error('Error al registrar la venta:', error);
       alert('Error al registrar la venta');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6">
-      <h2 className="text-xl font-bold mb-4">Registrar Venta</h2>
-      {products.map(product => (
-        <div key={product._id} className="mb-4">
-          <label className="block mb-2">
-            {product.name} (Stock: {product.quantity})
-            <input
-              type="number"
-              min="0"
-              max={product.quantity}
-              placeholder="Cantidad"
-              onChange={(e) => handleProductChange(product._id, parseInt(e.target.value), product.price)}
-              className="ml-2 p-1 border rounded"
-            />
-            <input
-              type="number"
-              min="0"
-              step="0"
-              placeholder="Precio"
-              defaultValue={product.price}
-              onChange={(e) => handleProductChange(product._id, parseInt(e.target.value), parseFloat(e.target.value))}
-              className="ml-2 p-1 border rounded"
-            />
+    <form onSubmit={handleSubmit} className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-lg border border-gray-200">
+      <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">Registrar Venta</h2>
+      {productos.map(product => (
+        <div key={product._id} className="mb-5">
+          <label className="block text-lg font-medium text-gray-700 mb-1">
+            {product.name} <span className="text-sm text-gray-500">(Stock: {product.quantity})</span>
           </label>
+          <input
+            type="number"
+            min="0"
+            max={product.quantity}
+            onChange={(e) => handleProductChange(product._id, parseInt(e.target.value))}
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+            placeholder="Cantidad"
+          />
         </div>
       ))}
-      <div className="font-bold mb-4">Total: ${total.toFixed()}</div>
-      <button type="submit" className="bg-green-500 text-white p-2 rounded">
+      <div className="text-xl font-semibold text-center text-indigo-600 my-4">
+        Total: ${total.toFixed(2)}
+      </div>
+      <button
+        type="submit"
+        className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-md shadow-md transition duration-300"
+      >
         Registrar Venta
       </button>
     </form>
